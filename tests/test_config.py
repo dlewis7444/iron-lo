@@ -1,4 +1,3 @@
-import subprocess
 from unittest.mock import patch, MagicMock
 from config import IloConfig, FHRDM01_ILO
 
