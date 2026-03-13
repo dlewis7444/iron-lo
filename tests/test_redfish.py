@@ -168,3 +168,53 @@ async def test_virtual_media_unmount(client):
 
     assert result["inserted"] is False
     assert result["connected"] is False
+
+
+@respx.mock
+async def test_get_event_log_ilo(client):
+    respx.get(f"{BASE}/Managers/1/LogServices/IEL/Entries").mock(
+        return_value=httpx.Response(200, json={
+            "Members": [
+                {
+                    "Id": "1",
+                    "Severity": "OK",
+                    "Message": "iLO reset to factory defaults",
+                    "Created": "2026-01-01T00:00:00Z",
+                    "EntryType": "Event",
+                },
+                {
+                    "Id": "2",
+                    "Severity": "Warning",
+                    "Message": "Server powered off",
+                    "Created": "2026-01-02T00:00:00Z",
+                    "EntryType": "Event",
+                },
+            ]
+        })
+    )
+
+    result = await client.get_event_log("ilo", limit=20)
+
+    assert len(result) == 2
+    assert result[0] == {
+        "id": 1,
+        "severity": "OK",
+        "message": "iLO reset to factory defaults",
+        "created": "2026-01-01T00:00:00Z",
+        "entry_type": "Event",
+    }
+
+
+@respx.mock
+async def test_get_event_log_respects_limit(client):
+    respx.get(f"{BASE}/Systems/1/LogServices/IML/Entries").mock(
+        return_value=httpx.Response(200, json={
+            "Members": [{"Id": str(i), "Severity": "OK", "Message": f"msg{i}",
+                         "Created": "2026-01-01T00:00:00Z", "EntryType": "SEL"}
+                        for i in range(10)]
+        })
+    )
+
+    result = await client.get_event_log("system", limit=3)
+
+    assert len(result) == 3
