@@ -61,5 +61,13 @@ class RedfishClient:
             "ilo_ver":    manager.get("FirmwareVersion", "Unknown"),
         }
 
+    async def power(self, action: str, force: bool = False) -> dict:
+        reset_type = _RESET_MAP[(action, force)]
+        await self._post(
+            "/Systems/1/Actions/ComputerSystem.Reset",
+            {"ResetType": reset_type},
+        )
+        return {"action": action, "reset_type": reset_type, "result": "accepted"}
+
     async def close(self):
         await self._client.aclose()
