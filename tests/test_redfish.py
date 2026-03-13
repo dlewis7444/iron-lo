@@ -88,3 +88,83 @@ async def test_power_nmi_ignores_force(client):
 
     assert result_normal["reset_type"] == "Nmi"
     assert result_forced["reset_type"] == "Nmi"
+
+
+@respx.mock
+async def test_boot_source_once(client):
+    respx.patch(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={}))
+    respx.get(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={
+        "Boot": {
+            "BootSourceOverrideTarget": "Pxe",
+            "BootSourceOverrideEnabled": "Once",
+        }
+    }))
+
+    result = await client.boot_source("pxe", persistent=False)
+
+    assert result == {
+        "boot_source_override_target": "Pxe",
+        "boot_source_override_enabled": "Once",
+    }
+    import json
+    patch_call = next(c for c in respx.calls if c.request.method == "PATCH")
+    assert json.loads(patch_call.request.content) == {
+        "Boot": {"BootSourceOverrideTarget": "Pxe", "BootSourceOverrideEnabled": "Once"}
+    }
+
+
+@respx.mock
+async def test_boot_source_persistent(client):
+    respx.patch(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={}))
+    respx.get(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={
+        "Boot": {
+            "BootSourceOverrideTarget": "Hdd",
+            "BootSourceOverrideEnabled": "Continuous",
+        }
+    }))
+
+    result = await client.boot_source("hdd", persistent=True)
+
+    assert result["boot_source_override_enabled"] == "Continuous"
+
+
+@respx.mock
+async def test_virtual_media_mount(client):
+    respx.patch(f"{BASE}/Managers/1/VirtualMedia/2").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    respx.get(f"{BASE}/Managers/1/VirtualMedia/2").mock(
+        return_value=httpx.Response(200, json={
+            "Inserted": True,
+            "ConnectedVia": "URI",
+            "Image": "http://fileserver/os.iso",
+        })
+    )
+
+    result = await client.virtual_media("mount", "http://fileserver/os.iso")
+
+    assert result == {
+        "inserted": True,
+        "connected": True,
+        "image_url": "http://fileserver/os.iso",
+        "slot": 2,
+    }
+
+
+@respx.mock
+async def test_virtual_media_unmount(client):
+    respx.patch(f"{BASE}/Managers/1/VirtualMedia/2").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    respx.get(f"{BASE}/Managers/1/VirtualMedia/2").mock(
+        return_value=httpx.Response(200, json={
+            "Inserted": False,
+            "ConnectedVia": "NotConnected",
+            "Image": "",
+        })
+    )
+
+    result = await client.virtual_media("unmount")
+
+    assert result["inserted"] is False
+    assert result["connected"] is False
