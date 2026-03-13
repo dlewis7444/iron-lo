@@ -69,5 +69,40 @@ class RedfishClient:
         )
         return {"action": action, "reset_type": reset_type, "result": "accepted"}
 
+    async def boot_source(self, source: str, persistent: bool = False) -> dict:
+        redfish_source = _SOURCE_MAP[source]
+        enabled = "Continuous" if persistent else "Once"
+        await self._patch("/Systems/1", {
+            "Boot": {
+                "BootSourceOverrideTarget": redfish_source,
+                "BootSourceOverrideEnabled": enabled,
+            }
+        })
+        system = await self._get("/Systems/1")
+        boot = system.get("Boot", {})
+        return {
+            "boot_source_override_target": boot.get("BootSourceOverrideTarget", "None"),
+            "boot_source_override_enabled": boot.get("BootSourceOverrideEnabled", "Disabled"),
+        }
+
+    async def virtual_media(self, action: str, url: str | None = None) -> dict:
+        if action == "mount":
+            await self._patch("/Managers/1/VirtualMedia/2", {
+                "Inserted": True,
+                "Image": url,
+            })
+        else:
+            await self._patch("/Managers/1/VirtualMedia/2", {
+                "Inserted": False,
+                "Image": "",
+            })
+        media = await self._get("/Managers/1/VirtualMedia/2")
+        return {
+            "inserted": media.get("Inserted", False),
+            "connected": media.get("ConnectedVia", "NotConnected") != "NotConnected",
+            "image_url": media.get("Image", ""),
+            "slot": 2,
+        }
+
     async def close(self):
         await self._client.aclose()
