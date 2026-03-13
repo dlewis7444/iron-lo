@@ -104,5 +104,18 @@ class RedfishClient:
             "slot": 2,
         }
 
+    async def get_event_log(self, log: str, limit: int = 20) -> list:
+        data = await self._get(_LOG_PATHS[log])
+        entries = []
+        for member in data.get("Members", [])[:limit]:
+            entries.append({
+                "id":         int(member.get("Id", 0)),
+                "severity":   member.get("Severity", "Informational"),
+                "message":    member.get("Message", ""),
+                "created":    member.get("Created", ""),
+                "entry_type": member.get("EntryType", "Event"),
+            })
+        return entries
+
     async def close(self):
         await self._client.aclose()
