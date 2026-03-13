@@ -1,11 +1,18 @@
 # mcp_server.py
+from contextlib import asynccontextmanager
 from mcp.server.fastmcp import FastMCP
 from config import FHRDM01_ILO
 from redfish import RedfishClient
 from serial_console import SerialConsole
 
 
-mcp = FastMCP("iron-lo")
+@asynccontextmanager
+async def _lifespan(_mcp: FastMCP):
+    yield
+    await _redfish.close()
+
+
+mcp = FastMCP("iron-lo", lifespan=_lifespan)
 
 # Initialise clients — credentials fetched once at startup via pass
 _username, _password = FHRDM01_ILO.get_credentials()
@@ -28,7 +35,8 @@ async def ilo_get_status() -> dict:
 
 @mcp.tool()
 async def ilo_power(action: str, force: bool = False) -> dict:
-    """Control server power. action: on|off|reset|nmi. force=True skips graceful shutdown/restart."""
+    """Control server power. action: on|off|reset|nmi. force=True skips graceful shutdown/restart.
+    Returns {action, reset_type, result} — reset_type is the Redfish ResetType sent to iLO."""
     if action not in ("on", "off", "reset", "nmi"):
         return _error(f"invalid action: {action}", "invalid_action")
     try:
