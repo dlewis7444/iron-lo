@@ -52,3 +52,39 @@ async def test_get_status_missing_oem_fields(client):
     assert result["uid"] == "Off"
     assert result["post_state"] == "Unknown"
     assert result["ilo_ver"] == "Unknown"
+
+
+@respx.mock
+async def test_power_reset(client):
+    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset").mock(
+        return_value=httpx.Response(200, json={})
+    )
+
+    result = await client.power("reset", force=False)
+
+    assert result == {"action": "reset", "reset_type": "GracefulRestart", "result": "accepted"}
+    assert respx.calls.last.request.content == b'{"ResetType":"GracefulRestart"}'
+
+
+@respx.mock
+async def test_power_force_off(client):
+    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset").mock(
+        return_value=httpx.Response(200, json={})
+    )
+
+    result = await client.power("off", force=True)
+
+    assert result["reset_type"] == "ForceOff"
+
+
+@respx.mock
+async def test_power_nmi_ignores_force(client):
+    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset").mock(
+        return_value=httpx.Response(200, json={})
+    )
+
+    result_normal = await client.power("nmi", force=False)
+    result_forced = await client.power("nmi", force=True)
+
+    assert result_normal["reset_type"] == "Nmi"
+    assert result_forced["reset_type"] == "Nmi"
