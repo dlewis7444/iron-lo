@@ -141,7 +141,7 @@ async def test_send_key_ctrl_c(attached_console):
 
 
 async def test_send_key_invalid(attached_console):
-    console, mock_process = attached_console
+    console, _ = attached_console
 
     result = await console.send_key("f12")
 
