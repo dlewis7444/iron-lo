@@ -29,6 +29,8 @@ async def test_attach_opens_ssh_and_runs_vsp(console):
         username="admin",
         password="testpass",
         known_hosts=None,
+        server_host_key_algs=["ssh-rsa"],
+        kex_algs=["diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"],
     )
     mock_conn.create_process.assert_awaited_once_with("VSP")
 
