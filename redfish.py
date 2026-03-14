@@ -1,5 +1,6 @@
 # redfish.py
 import httpx
+from config import BmcProfile
 
 
 _SOURCE_MAP = {
@@ -20,15 +21,11 @@ _RESET_MAP = {
     ("nmi",   True):  "Nmi",
 }
 
-_LOG_PATHS = {
-    "ilo":    "/Managers/1/LogServices/IEL/Entries",
-    "system": "/Systems/1/LogServices/IML/Entries",
-}
-
 
 class RedfishClient:
-    def __init__(self, host: str, username: str, password: str):
+    def __init__(self, host: str, username: str, password: str, profile: BmcProfile):
         self._base = f"https://{host}/redfish/v1"
+        self._profile = profile
         self._client = httpx.AsyncClient(
             verify=False,
             auth=(username, password),
@@ -50,21 +47,26 @@ class RedfishClient:
         return resp.json() if resp.content else {}
 
     async def get_status(self) -> dict:
-        system = await self._get("/Systems/1")
-        manager = await self._get("/Managers/1")
+        system = await self._get(self._profile.system_path)
+        manager = await self._get(self._profile.manager_path)
+        post_state = (
+            system.get("Oem", {}).get("Hpe", {}).get("PostState", "Unknown")
+            if self._profile.bmc_type == "ilo"
+            else "Unknown"
+        )
         return {
             "power":      system.get("PowerState", "Unknown"),
             "health":     system.get("Status", {}).get("HealthRollup", "Unknown"),
             "uid":        system.get("IndicatorLED", "Off"),
-            "post_state": system.get("Oem", {}).get("Hpe", {}).get("PostState", "Unknown"),
+            "post_state": post_state,
             "bios_ver":   system.get("BiosVersion", "Unknown"),
-            "ilo_ver":    manager.get("FirmwareVersion", "Unknown"),
+            "bmc_ver":    manager.get("FirmwareVersion", "Unknown"),
         }
 
     async def power(self, action: str, force: bool = False) -> dict:
         reset_type = _RESET_MAP[(action, force)]
         await self._post(
-            "/Systems/1/Actions/ComputerSystem.Reset",
+            self._profile.power_action_path,
             {"ResetType": reset_type},
         )
         return {"action": action, "reset_type": reset_type, "result": "accepted"}
@@ -72,13 +74,13 @@ class RedfishClient:
     async def boot_source(self, source: str, persistent: bool = False) -> dict:
         redfish_source = _SOURCE_MAP[source]
         enabled = "Continuous" if persistent else "Once"
-        await self._patch("/Systems/1", {
+        await self._patch(self._profile.system_path, {
             "Boot": {
                 "BootSourceOverrideTarget": redfish_source,
                 "BootSourceOverrideEnabled": enabled,
             }
         })
-        system = await self._get("/Systems/1")
+        system = await self._get(self._profile.system_path)
         boot = system.get("Boot", {})
         return {
             "boot_source_override_target": boot.get("BootSourceOverrideTarget", "None"),
@@ -86,26 +88,28 @@ class RedfishClient:
         }
 
     async def virtual_media(self, action: str, url: str | None = None) -> dict:
+        path = self._profile.virtual_media_path
         if action == "mount":
-            await self._patch("/Managers/1/VirtualMedia/2", {
+            await self._patch(path, {
                 "Inserted": True,
                 "Image": url,
             })
         else:
-            await self._patch("/Managers/1/VirtualMedia/2", {
+            await self._patch(path, {
                 "Inserted": False,
                 "Image": "",
             })
-        media = await self._get("/Managers/1/VirtualMedia/2")
+        media = await self._get(path)
+        slot = path.rsplit("/", 1)[-1]
         return {
             "inserted": media.get("Inserted", False),
             "connected": media.get("ConnectedVia", "NotConnected") != "NotConnected",
             "image_url": media.get("Image", ""),
-            "slot": 2,
+            "slot": slot,
         }
 
     async def get_event_log(self, log: str, limit: int = 20) -> list:
-        data = await self._get(_LOG_PATHS[log])
+        data = await self._get(self._profile.log_paths[log])
         entries = []
         for member in data.get("Members", [])[:limit]:
             entries.append({
