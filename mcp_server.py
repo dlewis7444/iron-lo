@@ -1,7 +1,7 @@
 # mcp_server.py
 from contextlib import asynccontextmanager
 from mcp.server.fastmcp import FastMCP
-from config import FHRDM01_ILO
+from config import load_config
 from redfish import RedfishClient
 from serial_console import SerialConsole
 
@@ -12,12 +12,13 @@ async def _lifespan(_mcp: FastMCP):
     await _redfish.close()
 
 
-mcp = FastMCP("iron-lo", lifespan=_lifespan)
+mcp = FastMCP("hp-ilo", lifespan=_lifespan)
 
 # Initialise clients — credentials fetched once at startup via pass
-_username, _password = FHRDM01_ILO.get_credentials()
-_redfish = RedfishClient(FHRDM01_ILO.host, _username, _password)
-_console = SerialConsole(FHRDM01_ILO.host, _username, _password)
+_config = load_config()
+_username, _password = _config.get_credentials()
+_redfish = RedfishClient(_config.host, _username, _password)
+_console = SerialConsole(_config.host, _username, _password)
 
 
 def _error(msg: str, code: str) -> dict:

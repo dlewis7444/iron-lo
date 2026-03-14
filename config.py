@@ -1,3 +1,5 @@
+# config.py
+import os
 import subprocess
 from dataclasses import dataclass
 
@@ -18,7 +20,8 @@ class IloConfig:
         return username, password
 
 
-FHRDM01_ILO = IloConfig(
-    host="bmc.example.com",
-    cred_path="vendor/bmc01/admin",
-)
+def load_config() -> IloConfig:
+    """Load iLO config from environment variables ILO_HOST and ILO_CRED_PATH."""
+    host = os.environ["ILO_HOST"]
+    cred_path = os.environ["ILO_CRED_PATH"]
+    return IloConfig(host=host, cred_path=cred_path)
