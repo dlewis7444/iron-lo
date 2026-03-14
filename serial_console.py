@@ -2,6 +2,7 @@
 import asyncio
 import asyncssh
 from typing import Optional
+from config import BmcProfile
 
 
 _KEY_MAP = {
@@ -13,10 +14,11 @@ _KEY_MAP = {
 
 
 class SerialConsole:
-    def __init__(self, host: str, username: str, password: str):
+    def __init__(self, host: str, username: str, password: str, profile: BmcProfile):
         self._host = host
         self._username = username
         self._password = password
+        self._profile = profile
         self._conn: Optional[asyncssh.SSHClientConnection] = None
         self._process: Optional[asyncssh.SSHClientProcess] = None
 
@@ -32,17 +34,18 @@ class SerialConsole:
             username=self._username,
             password=self._password,
             known_hosts=None,
-            server_host_key_algs=["ssh-rsa"],
-            kex_algs=["diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"],
+            preferred_auth="password",
+            server_host_key_algs=self._profile.ssh_host_key_algs,
+            kex_algs=self._profile.ssh_kex_algs,
         )
-        self._process = await self._conn.create_process("VSP")
+        self._process = await self._conn.create_process(self._profile.console_command)
         return {"status": "attached"}
 
     async def detach(self) -> dict:
         if not self.is_attached:
             return {"status": "detached"}
         try:
-            self._process.stdin.write("\x1b(")
+            self._process.stdin.write(self._profile.console_exit_seq)
             await asyncio.sleep(0.2)
         except Exception:
             pass
