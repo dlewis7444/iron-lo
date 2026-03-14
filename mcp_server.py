@@ -12,7 +12,7 @@ async def _lifespan(_mcp: FastMCP):
     await _redfish.close()
 
 
-mcp = FastMCP("hp-ilo", lifespan=_lifespan)
+mcp = FastMCP("iron-lo", lifespan=_lifespan)
 
 # Initialise clients — credentials fetched once at startup via pass
 _config = load_config()
