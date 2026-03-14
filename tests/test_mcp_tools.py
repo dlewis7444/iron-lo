@@ -5,10 +5,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 @pytest.fixture(autouse=True)
 def mock_pass_credentials():
-    """Prevent real `pass` calls when importing mcp_server."""
+    """Prevent real `pass` calls and provide env vars when importing mcp_server."""
     mock_result = MagicMock()
     mock_result.stdout = "testpassword\n"
-    with patch("subprocess.run", return_value=mock_result):
+    env = {"ILO_HOST": "test-ilo.local", "ILO_CRED_PATH": "internal/test-ilo/admin"}
+    with patch("subprocess.run", return_value=mock_result), \
+         patch.dict("os.environ", env):
         yield
 
 

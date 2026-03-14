@@ -1,10 +1,20 @@
+# tests/test_config.py
 from unittest.mock import patch, MagicMock
-from config import IloConfig, FHRDM01_ILO
+import pytest
+from config import IloConfig, load_config
 
 
-def test_bmc01_ilo_singleton():
-    assert FHRDM01_ILO.host == "bmc.example.com"
-    assert FHRDM01_ILO.cred_path == "vendor/bmc01/admin"
+def test_load_config_reads_env_vars():
+    with patch.dict("os.environ", {"ILO_HOST": "myilo.local", "ILO_CRED_PATH": "internal/myilo/admin"}):
+        config = load_config()
+    assert config.host == "myilo.local"
+    assert config.cred_path == "internal/myilo/admin"
+
+
+def test_load_config_raises_on_missing_env_var():
+    with patch.dict("os.environ", {}, clear=True):
+        with pytest.raises(KeyError):
+            load_config()
 
 
 def test_get_credentials_returns_username_from_path():
