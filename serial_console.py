@@ -32,6 +32,8 @@ class SerialConsole:
             username=self._username,
             password=self._password,
             known_hosts=None,
+            server_host_key_algs=["ssh-rsa"],
+            kex_algs=["diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"],
         )
         self._process = await self._conn.create_process("VSP")
         return {"status": "attached"}
