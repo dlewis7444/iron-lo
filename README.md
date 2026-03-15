@@ -32,8 +32,16 @@ git clone https://github.com/yourusername/iron-lo.git
 cd iron-lo
 python3 -m venv .venv
 source .venv/bin/activate
+pip install .
+```
+
+For contributors who want to run the test suite, install the dev extras instead:
+
+```bash
 pip install -e ".[dev]"
 ```
+
+(`-e` installs in editable mode so source changes take effect without reinstalling.)
 
 ## MCP Registration
 
@@ -84,6 +92,8 @@ bmc_power(action="reset")
 ```
 
 ## Running Tests
+
+Requires the dev extras (`pip install -e ".[dev]"`):
 
 ```bash
 source .venv/bin/activate
