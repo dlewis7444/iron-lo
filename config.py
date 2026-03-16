@@ -1,6 +1,4 @@
 # config.py
-import os
-import subprocess
 from dataclasses import dataclass
 
 
@@ -53,28 +51,8 @@ _IDRAC_PROFILE = BmcProfile(
 _PROFILES = {"ilo": _ILO_PROFILE, "idrac": _IDRAC_PROFILE}
 
 
-@dataclass
-class BmcConfig:
-    host: str
-    cred_path: str
-    profile: BmcProfile
-
-    def get_credentials(self) -> tuple[str, str]:
-        """Fetch credentials from pass store. Returns (username, password)."""
-        result = subprocess.run(
-            ["pass", "show", self.cred_path],
-            capture_output=True, text=True, check=True,
-        )
-        password = result.stdout.splitlines()[0].strip()
-        username = self.cred_path.rsplit("/", 1)[-1]
-        return username, password
-
-
-def load_config() -> BmcConfig:
-    """Load BMC config from environment variables. BMC_* vars take precedence over ILO_* for backward compat."""
-    host = os.environ.get("BMC_HOST") or os.environ["ILO_HOST"]
-    cred_path = os.environ.get("BMC_CRED_PATH") or os.environ["ILO_CRED_PATH"]
-    bmc_type = os.environ.get("BMC_TYPE", "ilo").lower()
-    if bmc_type not in _PROFILES:
-        raise ValueError(f"Unknown BMC_TYPE: {bmc_type!r}. Must be one of: {list(_PROFILES)}")
-    return BmcConfig(host=host, cred_path=cred_path, profile=_PROFILES[bmc_type])
+def get_profile(bmc_type: str) -> BmcProfile:
+    key = bmc_type.lower()
+    if key not in _PROFILES:
+        raise ValueError(f"Unknown bmc_type: {bmc_type!r}. Must be one of: {list(_PROFILES)}")
+    return _PROFILES[key]
