@@ -17,7 +17,7 @@ iron-lo requires no configuration. Claude provides BMC credentials at runtime vi
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/iron-lo.git
+git clone https://github.com/dlewis7444/iron-lo.git
 cd iron-lo
 ./install.sh
 ```
