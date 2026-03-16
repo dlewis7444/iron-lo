@@ -29,6 +29,7 @@ class RedfishClient:
         self._client = httpx.AsyncClient(
             verify=False,
             auth=(username, password),
+            limits=httpx.Limits(max_keepalive_connections=0),
         )
 
     async def _get(self, path: str) -> dict:
