@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "iron-lo"
 version = "0.2.0"
 requires-python = ">=3.11"
+license = {text = "MIT"}
 dependencies = [
     "mcp>=1.0.0",
     "httpx>=0.27.0",
