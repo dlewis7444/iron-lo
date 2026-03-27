@@ -18,13 +18,13 @@ class BmcProfile:
 
 _ILO_PROFILE = BmcProfile(
     bmc_type="ilo",
-    system_path="/Systems/1",
-    manager_path="/Managers/1",
-    virtual_media_path="/Managers/1/VirtualMedia/2",
-    power_action_path="/Systems/1/Actions/ComputerSystem.Reset",
+    system_path="/Systems/1/",
+    manager_path="/Managers/1/",
+    virtual_media_path="/Managers/1/VirtualMedia/2/",
+    power_action_path="/Systems/1/Actions/ComputerSystem.Reset/",
     log_paths={
-        "bmc":    "/Managers/1/LogServices/IEL/Entries",
-        "system": "/Systems/1/LogServices/IML/Entries",
+        "bmc":    "/Managers/1/LogServices/IEL/Entries/",
+        "system": "/Systems/1/LogServices/IML/Entries/",
     },
     console_command="VSP",
     console_exit_seq="\x1b(",
@@ -34,13 +34,13 @@ _ILO_PROFILE = BmcProfile(
 
 _IDRAC_PROFILE = BmcProfile(
     bmc_type="idrac",
-    system_path="/Systems/System.Embedded.1",
-    manager_path="/Managers/iDRAC.Embedded.1",
-    virtual_media_path="/Managers/iDRAC.Embedded.1/VirtualMedia/CD",
-    power_action_path="/Systems/System.Embedded.1/Actions/ComputerSystem.Reset",
+    system_path="/Systems/System.Embedded.1/",
+    manager_path="/Managers/iDRAC.Embedded.1/",
+    virtual_media_path="/Managers/iDRAC.Embedded.1/VirtualMedia/CD/",
+    power_action_path="/Systems/System.Embedded.1/Actions/ComputerSystem.Reset/",
     log_paths={
-        "bmc":    "/Managers/iDRAC.Embedded.1/Logs/Sel",
-        "system": "/Managers/iDRAC.Embedded.1/Logs/Lclog",
+        "bmc":    "/Managers/iDRAC.Embedded.1/Logs/Sel/",
+        "system": "/Managers/iDRAC.Embedded.1/Logs/Lclog/",
     },
     console_command="console com2",
     console_exit_seq="\r~.",

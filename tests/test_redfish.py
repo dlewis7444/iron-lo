@@ -20,14 +20,14 @@ def idrac_client():
 
 @respx.mock
 async def test_get_status(ilo_client):
-    respx.get(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={
+    respx.get(f"{BASE}/Systems/1/").mock(return_value=httpx.Response(200, json={
         "PowerState": "On",
         "Status": {"HealthRollup": "OK"},
         "IndicatorLED": "Off",
         "Oem": {"Hpe": {"PostState": "FinishedPost"}},
         "BiosVersion": "U30 v2.76",
     }))
-    respx.get(f"{BASE}/Managers/1").mock(return_value=httpx.Response(200, json={
+    respx.get(f"{BASE}/Managers/1/").mock(return_value=httpx.Response(200, json={
         "FirmwareVersion": "iLO 5 v2.55",
     }))
 
@@ -46,11 +46,11 @@ async def test_get_status(ilo_client):
 @respx.mock
 async def test_get_status_missing_oem_fields(ilo_client):
     """get_status handles iLO responses with missing optional fields."""
-    respx.get(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={
+    respx.get(f"{BASE}/Systems/1/").mock(return_value=httpx.Response(200, json={
         "PowerState": "Off",
         "Status": {"HealthRollup": "OK"},
     }))
-    respx.get(f"{BASE}/Managers/1").mock(return_value=httpx.Response(200, json={}))
+    respx.get(f"{BASE}/Managers/1/").mock(return_value=httpx.Response(200, json={}))
 
     result = await ilo_client.get_status()
 
@@ -62,7 +62,7 @@ async def test_get_status_missing_oem_fields(ilo_client):
 
 @respx.mock
 async def test_power_reset(ilo_client):
-    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset").mock(
+    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset/").mock(
         return_value=httpx.Response(200, json={})
     )
 
@@ -74,7 +74,7 @@ async def test_power_reset(ilo_client):
 
 @respx.mock
 async def test_power_force_off(ilo_client):
-    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset").mock(
+    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset/").mock(
         return_value=httpx.Response(200, json={})
     )
 
@@ -85,7 +85,7 @@ async def test_power_force_off(ilo_client):
 
 @respx.mock
 async def test_power_nmi_ignores_force(ilo_client):
-    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset").mock(
+    respx.post(f"{BASE}/Systems/1/Actions/ComputerSystem.Reset/").mock(
         return_value=httpx.Response(200, json={})
     )
 
@@ -98,8 +98,8 @@ async def test_power_nmi_ignores_force(ilo_client):
 
 @respx.mock
 async def test_boot_source_once(ilo_client):
-    respx.patch(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={}))
-    respx.get(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={
+    respx.patch(f"{BASE}/Systems/1/").mock(return_value=httpx.Response(200, json={}))
+    respx.get(f"{BASE}/Systems/1/").mock(return_value=httpx.Response(200, json={
         "Boot": {
             "BootSourceOverrideTarget": "Pxe",
             "BootSourceOverrideEnabled": "Once",
@@ -121,8 +121,8 @@ async def test_boot_source_once(ilo_client):
 
 @respx.mock
 async def test_boot_source_persistent(ilo_client):
-    respx.patch(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={}))
-    respx.get(f"{BASE}/Systems/1").mock(return_value=httpx.Response(200, json={
+    respx.patch(f"{BASE}/Systems/1/").mock(return_value=httpx.Response(200, json={}))
+    respx.get(f"{BASE}/Systems/1/").mock(return_value=httpx.Response(200, json={
         "Boot": {
             "BootSourceOverrideTarget": "Hdd",
             "BootSourceOverrideEnabled": "Continuous",
@@ -136,15 +136,23 @@ async def test_boot_source_persistent(ilo_client):
 
 @respx.mock
 async def test_virtual_media_mount(ilo_client):
-    respx.patch(f"{BASE}/Managers/1/VirtualMedia/2").mock(
-        return_value=httpx.Response(200, json={})
-    )
-    respx.get(f"{BASE}/Managers/1/VirtualMedia/2").mock(
+    respx.get(f"{BASE}/Managers/1/VirtualMedia/2/").mock(
         return_value=httpx.Response(200, json={
             "Inserted": True,
             "ConnectedVia": "URI",
             "Image": "http://fileserver/os.iso",
+            "Oem": {"Hpe": {"Actions": {
+                "#HpeVirtualMedia.InsertVirtualMedia": {
+                    "target": "/redfish/v1/Managers/1/VirtualMedia/2/Actions/Oem/Hpe/HpeVirtualMedia.InsertVirtualMedia/",
+                },
+                "#HpeVirtualMedia.EjectVirtualMedia": {
+                    "target": "/redfish/v1/Managers/1/VirtualMedia/2/Actions/Oem/Hpe/HpeVirtualMedia.EjectVirtualMedia/",
+                },
+            }}},
         })
+    )
+    respx.post(f"{BASE}/Managers/1/VirtualMedia/2/Actions/Oem/Hpe/HpeVirtualMedia.InsertVirtualMedia/").mock(
+        return_value=httpx.Response(200)
     )
 
     result = await ilo_client.virtual_media("mount", "http://fileserver/os.iso")
@@ -159,15 +167,23 @@ async def test_virtual_media_mount(ilo_client):
 
 @respx.mock
 async def test_virtual_media_unmount(ilo_client):
-    respx.patch(f"{BASE}/Managers/1/VirtualMedia/2").mock(
-        return_value=httpx.Response(200, json={})
-    )
-    respx.get(f"{BASE}/Managers/1/VirtualMedia/2").mock(
+    respx.get(f"{BASE}/Managers/1/VirtualMedia/2/").mock(
         return_value=httpx.Response(200, json={
             "Inserted": False,
             "ConnectedVia": "NotConnected",
             "Image": "",
+            "Oem": {"Hpe": {"Actions": {
+                "#HpeVirtualMedia.InsertVirtualMedia": {
+                    "target": "/redfish/v1/Managers/1/VirtualMedia/2/Actions/Oem/Hpe/HpeVirtualMedia.InsertVirtualMedia/",
+                },
+                "#HpeVirtualMedia.EjectVirtualMedia": {
+                    "target": "/redfish/v1/Managers/1/VirtualMedia/2/Actions/Oem/Hpe/HpeVirtualMedia.EjectVirtualMedia/",
+                },
+            }}},
         })
+    )
+    respx.post(f"{BASE}/Managers/1/VirtualMedia/2/Actions/Oem/Hpe/HpeVirtualMedia.EjectVirtualMedia/").mock(
+        return_value=httpx.Response(200)
     )
 
     result = await ilo_client.virtual_media("unmount")
@@ -178,7 +194,7 @@ async def test_virtual_media_unmount(ilo_client):
 
 @respx.mock
 async def test_get_event_log_bmc_ilo(ilo_client):
-    respx.get(f"{BASE}/Managers/1/LogServices/IEL/Entries").mock(
+    respx.get(f"{BASE}/Managers/1/LogServices/IEL/Entries/").mock(
         return_value=httpx.Response(200, json={
             "Members": [
                 {
@@ -213,7 +229,7 @@ async def test_get_event_log_bmc_ilo(ilo_client):
 
 @respx.mock
 async def test_get_event_log_respects_limit(ilo_client):
-    respx.get(f"{BASE}/Systems/1/LogServices/IML/Entries").mock(
+    respx.get(f"{BASE}/Systems/1/LogServices/IML/Entries/").mock(
         return_value=httpx.Response(200, json={
             "Members": [{"Id": str(i), "Severity": "OK", "Message": f"msg{i}",
                          "Created": "2026-01-01T00:00:00Z", "EntryType": "SEL"}
@@ -230,13 +246,13 @@ async def test_get_event_log_respects_limit(ilo_client):
 
 @respx.mock
 async def test_get_status_idrac(idrac_client):
-    respx.get(f"{BASE}/Systems/System.Embedded.1").mock(return_value=httpx.Response(200, json={
+    respx.get(f"{BASE}/Systems/System.Embedded.1/").mock(return_value=httpx.Response(200, json={
         "PowerState": "On",
         "Status": {"HealthRollup": "OK"},
         "IndicatorLED": "Off",
         "BiosVersion": "2.18.0",
     }))
-    respx.get(f"{BASE}/Managers/iDRAC.Embedded.1").mock(return_value=httpx.Response(200, json={
+    respx.get(f"{BASE}/Managers/iDRAC.Embedded.1/").mock(return_value=httpx.Response(200, json={
         "FirmwareVersion": "6.10.30.00",
     }))
 
@@ -250,7 +266,7 @@ async def test_get_status_idrac(idrac_client):
 
 @respx.mock
 async def test_power_reset_idrac(idrac_client):
-    respx.post(f"{BASE}/Systems/System.Embedded.1/Actions/ComputerSystem.Reset").mock(
+    respx.post(f"{BASE}/Systems/System.Embedded.1/Actions/ComputerSystem.Reset/").mock(
         return_value=httpx.Response(200, json={})
     )
 
@@ -261,8 +277,8 @@ async def test_power_reset_idrac(idrac_client):
 
 @respx.mock
 async def test_boot_source_once_idrac(idrac_client):
-    respx.patch(f"{BASE}/Systems/System.Embedded.1").mock(return_value=httpx.Response(200, json={}))
-    respx.get(f"{BASE}/Systems/System.Embedded.1").mock(return_value=httpx.Response(200, json={
+    respx.patch(f"{BASE}/Systems/System.Embedded.1/").mock(return_value=httpx.Response(200, json={}))
+    respx.get(f"{BASE}/Systems/System.Embedded.1/").mock(return_value=httpx.Response(200, json={
         "Boot": {
             "BootSourceOverrideTarget": "Pxe",
             "BootSourceOverrideEnabled": "Once",
@@ -277,10 +293,10 @@ async def test_boot_source_once_idrac(idrac_client):
 
 @respx.mock
 async def test_virtual_media_mount_idrac(idrac_client):
-    respx.patch(f"{BASE}/Managers/iDRAC.Embedded.1/VirtualMedia/CD").mock(
+    respx.patch(f"{BASE}/Managers/iDRAC.Embedded.1/VirtualMedia/CD/").mock(
         return_value=httpx.Response(200, json={})
     )
-    respx.get(f"{BASE}/Managers/iDRAC.Embedded.1/VirtualMedia/CD").mock(
+    respx.get(f"{BASE}/Managers/iDRAC.Embedded.1/VirtualMedia/CD/").mock(
         return_value=httpx.Response(200, json={
             "Inserted": True,
             "ConnectedVia": "URI",
@@ -296,7 +312,7 @@ async def test_virtual_media_mount_idrac(idrac_client):
 
 @respx.mock
 async def test_get_event_log_bmc_idrac(idrac_client):
-    respx.get(f"{BASE}/Managers/iDRAC.Embedded.1/Logs/Sel").mock(
+    respx.get(f"{BASE}/Managers/iDRAC.Embedded.1/Logs/Sel/").mock(
         return_value=httpx.Response(200, json={
             "Members": [
                 {
@@ -318,7 +334,7 @@ async def test_get_event_log_bmc_idrac(idrac_client):
 
 @respx.mock
 async def test_get_event_log_system_idrac(idrac_client):
-    respx.get(f"{BASE}/Managers/iDRAC.Embedded.1/Logs/Lclog").mock(
+    respx.get(f"{BASE}/Managers/iDRAC.Embedded.1/Logs/Lclog/").mock(
         return_value=httpx.Response(200, json={
             "Members": [
                 {

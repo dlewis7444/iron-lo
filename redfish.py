@@ -31,6 +31,7 @@ class RedfishClient:
             auth=(username, password),
             limits=httpx.Limits(max_keepalive_connections=0),
             follow_redirects=True,
+            timeout=30.0,
         )
 
     async def _get(self, path: str) -> dict:
@@ -89,20 +90,44 @@ class RedfishClient:
             "boot_source_override_enabled": boot.get("BootSourceOverrideEnabled", "Disabled"),
         }
 
+    async def _ilo_oem_virtual_media_action(self, path: str, action_name: str, data: dict) -> None:
+        """Try iLO OEM virtual media actions, probing Hpe (iLO 5+) then Hp (iLO 4)."""
+        media = await self._get(path)
+        oem = media.get("Oem", {})
+        for vendor_key in ("Hpe", "Hp"):
+            actions = oem.get(vendor_key, {}).get("Actions", {})
+            for key, val in actions.items():
+                if action_name in key:
+                    # target is absolute from service root (/redfish/v1/...),
+                    # strip the base path so _post doesn't double-prefix
+                    target = val["target"]
+                    if target.startswith("/redfish/v1"):
+                        target = target[len("/redfish/v1"):]
+                    await self._post(target, data)
+                    return
+        raise RuntimeError(f"No OEM {action_name} action found at {path}")
+
     async def virtual_media(self, action: str, url: str | None = None) -> dict:
         path = self._profile.virtual_media_path
-        if action == "mount":
-            await self._patch(path, {
-                "Inserted": True,
-                "Image": url,
-            })
+        if self._profile.bmc_type == "ilo":
+            # iLO 4/5/6: use OEM HP/Hpe POST actions for virtual media
+            if action == "mount":
+                await self._ilo_oem_virtual_media_action(path, "InsertVirtualMedia", {"Image": url})
+            else:
+                await self._ilo_oem_virtual_media_action(path, "EjectVirtualMedia", {})
         else:
-            await self._patch(path, {
-                "Inserted": False,
-                "Image": "",
-            })
+            if action == "mount":
+                await self._patch(path, {
+                    "Inserted": True,
+                    "Image": url,
+                })
+            else:
+                await self._patch(path, {
+                    "Inserted": False,
+                    "Image": "",
+                })
         media = await self._get(path)
-        slot = path.rsplit("/", 1)[-1]
+        slot = path.strip("/").rsplit("/", 1)[-1]
         return {
             "inserted": media.get("Inserted", False),
             "connected": media.get("ConnectedVia", "NotConnected") != "NotConnected",
