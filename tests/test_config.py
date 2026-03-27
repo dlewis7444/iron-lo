@@ -6,7 +6,7 @@ from config import get_profile, BmcProfile, _ILO_PROFILE, _IDRAC_PROFILE, _PROFI
 def test_get_profile_ilo():
     profile = get_profile("ilo")
     assert profile.bmc_type == "ilo"
-    assert profile.system_path == "/Systems/1"
+    assert profile.system_path == "/Systems/1/"
 
 
 def test_get_profile_idrac():

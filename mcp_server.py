@@ -37,6 +37,11 @@ def _error(msg: str, code: str) -> dict:
     return {"error": msg, "code": code}
 
 
+def _exc_msg(e: Exception) -> str:
+    s = str(e)
+    return s if s else f"{type(e).__name__}"
+
+
 @mcp.tool()
 async def bmc_connect(host: str, bmc_type: str, username: str, password: str) -> dict:
     """Register BMC credentials for this session. No network call is made.
@@ -62,7 +67,7 @@ async def bmc_get_status(connection_id: str) -> dict:
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "redfish_error")
+        return _error(_exc_msg(e), "redfish_error")
 
 
 @mcp.tool()
@@ -77,7 +82,7 @@ async def bmc_power(connection_id: str, action: str, force: bool = False) -> dic
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "redfish_error")
+        return _error(_exc_msg(e), "redfish_error")
 
 
 @mcp.tool()
@@ -91,7 +96,7 @@ async def bmc_boot_source(connection_id: str, source: str, persistent: bool = Fa
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "redfish_error")
+        return _error(_exc_msg(e), "redfish_error")
 
 
 @mcp.tool()
@@ -107,7 +112,7 @@ async def bmc_virtual_media(connection_id: str, action: str, url: str = "") -> d
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "redfish_error")
+        return _error(_exc_msg(e), "redfish_error")
 
 
 @mcp.tool()
@@ -121,7 +126,7 @@ async def bmc_get_event_log(connection_id: str, log: str, limit: int = 20) -> li
     except KeyError as e:
         return [_error(str(e), "unknown_connection")]
     except Exception as e:
-        return [_error(str(e), "redfish_error")]
+        return [_error(_exc_msg(e), "redfish_error")]
 
 
 @mcp.tool()
@@ -133,7 +138,7 @@ async def bmc_console_attach(connection_id: str) -> dict:
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "ssh_error")
+        return _error(_exc_msg(e), "ssh_error")
 
 
 @mcp.tool()
@@ -148,7 +153,7 @@ async def bmc_console_read(connection_id: str, timeout_s: int = 5) -> dict:
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "console_error")
+        return _error(_exc_msg(e), "console_error")
 
 
 @mcp.tool()
@@ -160,7 +165,7 @@ async def bmc_console_write(connection_id: str, text: str, send_enter: bool = Tr
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "console_error")
+        return _error(_exc_msg(e), "console_error")
 
 
 @mcp.tool()
@@ -172,7 +177,7 @@ async def bmc_console_send_key(connection_id: str, key: str) -> dict:
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "console_error")
+        return _error(_exc_msg(e), "console_error")
 
 
 @mcp.tool()
@@ -184,7 +189,7 @@ async def bmc_console_detach(connection_id: str) -> dict:
     except KeyError as e:
         return _error(str(e), "unknown_connection")
     except Exception as e:
-        return _error(str(e), "console_error")
+        return _error(_exc_msg(e), "console_error")
 
 
 if __name__ == "__main__":
