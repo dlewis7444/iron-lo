@@ -30,6 +30,7 @@ class RedfishClient:
             verify=False,
             auth=(username, password),
             limits=httpx.Limits(max_keepalive_connections=0),
+            follow_redirects=True,
         )
 
     async def _get(self, path: str) -> dict:
