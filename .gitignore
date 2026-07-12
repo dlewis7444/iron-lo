@@ -6,3 +6,4 @@ build/
 *.egg-info/
 local-docs/
 CLAUDE.md
+.claude/
